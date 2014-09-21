@@ -2,41 +2,32 @@
 #include	<stdio.h>
 #include	"container.h"
 
-static void	fusion(t_list *ptr)
+int		get_freelist_size(t_table_hash *array)
 {
-  t_list	*begin;
+  int		i;
+  t_list	*tmp;
 
-  begin = ptr;
-  if (ptr->next && ptr->next_free == ptr->next)
+  i = 0;
+  tmp = array->freelist;
+  while (tmp)
     {
-      do
-	{
-	  ptr = ptr->next_free;
-	  begin->len += ptr->len;
-	}
-      while (ptr && ptr->next && ptr->next_free == ptr->next);
+      ++i;
+      tmp = tmp->next_free;
     }
-  if (begin != ptr)
-    {
-      begin->next = ptr->next;
-      begin->next_free = ptr->next_free;
-    }
+  return (i);
 }
 
-static t_list	*split(t_list *ptr, size_t len)
+void		print_freelist(t_table_hash *array)
 {
-  void		*end;
-  void		*end_free;
+  t_list	*tmp;
 
-  end = ptr->next;
-  ptr->next = (void *)ptr + len;
-  end_free = ptr->next_free;
-  ptr->next_free = ptr->next;
-  ptr->next->len = ptr->len - len;
-  ptr->len = len;
-  ptr->next->next = end;
-  ptr->next->next_free = end_free;
-  return ptr;
+  tmp = array->freelist;
+  printf("FREELIST :\n");
+  while (tmp)
+    {
+      printf("adresse : %p,  espace disponible : %d\n", tmp, tmp->len);
+      tmp = tmp->next_free;
+    }
 }
 
 void		put_to_freelist(t_table_hash *array, t_list *ptr)
@@ -60,7 +51,6 @@ void		put_to_freelist(t_table_hash *array, t_list *ptr)
     ptr->next_free = NULL;
   else
     ptr->next_free = list;
-  fusion(ptr);
 }
 
 void		*search_and_destroy_in_freelist(t_table_hash *array, size_t len)
@@ -74,8 +64,6 @@ void		*search_and_destroy_in_freelist(t_table_hash *array, size_t len)
     {
       if (tmp->len >= len)
 	{
-	  if (tmp->len > (len + BLOCK))
-	    tmp = split(tmp, len);
 	  tmp->is_free = 0;
 	  if (prev)
 	    prev->next_free = tmp->next_free;
